@@ -1,7 +1,7 @@
 #include "ESP8266.h"
 
 void setup() {
-  InitESP8266();
+  ESP8266_Init();
 }
 
 void loop() {
