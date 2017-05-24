@@ -16,11 +16,12 @@
     #define ESP8266 Serial
 #endif
 
+#include <ArduinoJson.h>
+
 #define SERVER_IP "192.168.1.68"
 #define SERVER_PORT 3000
 
-void InitESP8266();
-
-String ReadESP8266Data();
+void ESP8266_Init();
+String CertificateUID();
 
 #endif
