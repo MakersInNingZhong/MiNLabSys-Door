@@ -6,6 +6,8 @@
 SoftwareSerial esp8266(ESP8266_RX, ESP8266_TX);
 #endif
 
+DynamicJsonBuffer jsonBuffer;
+
 String ESP8266_ReadData() {
     while(!ESP8266.available());
     String temp;
@@ -56,21 +58,36 @@ void ESP8266_Init() {
 }
 
 String CreateHTTPHeader(String method, String path, String content_type, int content_length){
-    //String header = method + " " + path+ " HTTP/1.1\r\n" + ...
+    String header = method + " " + path + " HTTP/1.1\r\n";
+    header += "Connection: close\r\n";
+    header += "Content-Type: " + content_type + ";charset=utf-8\r\n";
+    header += "Content-Length: " + String(content_length) + "\r\n\r\n";
+    return header;
 }
 
 String CreatePOSTRequest(String path, String content_type, String body) {
     String header = CreateHTTPHeader("POST", path, content_type, body.length());
+    body.trim();
+    return header + body + "\r\n";
 }
 
 void ESP8266_Send_Json(String json_str) {
-    //String req = CreatePOSTRequest();
+    String req = CreatePOSTRequest(POST_PATH, "application/json", json_str);
+    Serial.println(req);
 }
 
-String CertificateUID(byte uid1, byte udi2, byte uid3, byte uid4) {
-    String uid_json; //package uid into json
+String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
+    //Create Json: {"uid":[uid1, uid2, uid3, uid4]}
+    JsonObject& root = jsonBuffer.createObject();
+    JsonArray& uid = root.createNestedArray("uid");
+    uid.add(uid1);
+    uid.add(uid2);
+    uid.add(uid3);
+    uid.add(uid4);
+    String uid_json;
+    root.printTo(uid_json);
     ESP8266_Send_Json(uid_json);
-    delay(200);
+    /*delay(200);
     String cer_msg = ESP8266_ReadData();
     cer_msg.trim();
     //unpackge cer_msg
@@ -79,5 +96,5 @@ String CertificateUID(byte uid1, byte udi2, byte uid3, byte uid4) {
     }
     else{
         return String("");
-    }
+    }*/
 }
