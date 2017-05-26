@@ -2,8 +2,8 @@
 
 #include "ESP8266.h"
 
-#if (defined USE_SOFTWARE_SERIAL) && (defined ESP8266_TX) && (defined ESP8266_RX)
-SoftwareSerial esp8266(ESP8266_RX, ESP8266_TX);
+#if (defined USE_DEBUG_MODE) && (defined DEBUG_TX) && (defined DEBUG_RX)
+SoftwareSerial debugserial(DEBUG_RX, DEBUG_TX);
 #endif
 
 DynamicJsonBuffer jsonBuffer;
@@ -12,22 +12,22 @@ String ESP8266_ReadData() {
     while(!ESP8266.available());
     String temp;
     while(ESP8266.available()){
-        temp += (char)ESP8266.read();
-        delay(4);
+        temp += ESP8266.readString();
+        delay(2);
     }
     return temp;
 }
 
 void ESP8266_Init() {
-    #ifdef USE_SOFTWARE_SERIAL
-        Serial.begin(115200);
-        Serial.println("###### Initializing ESP8266 ######");
-        Serial.println("SET BAUD: " + String(ESP8266_BAUD));
+    #ifdef USE_DEBUG_MODE
+        DEBUG.begin(DEBUG_BAUD);
+        DEBUG.println("###### Initializing ESP8266 ######");
+        DEBUG.println("SET BAUD: " + String(ESP8266_BAUD));
     #endif
     ESP8266.begin(ESP8266_BAUD);
     delay(20);
-    #ifdef USE_SOFTWARE_SERIAL
-        Serial.println("RESET ESP8266");
+    /*#ifdef USE_DEBUG_MODE
+        DEBUG.println("RESET ESP8266");
     #endif
     ESP8266.println("AT+RST");
     String rst_msg = ESP8266_ReadData();
@@ -37,24 +37,26 @@ void ESP8266_Init() {
         rst_msg = ESP8266_ReadData();
         rst_msg.trim();
     }
-    #ifdef USE_SOFTWARE_SERIAL
-        Serial.println("ESP8266 HAS GOT IP");
+    ESP8266.println("AT+CIPMUX=0");
+    ESP8266_ReadData();
+    #ifdef USE_DEBUG_MODE
+        DEBUG.println("ESP8266 HAS GOT IP");
         ESP8266.println("AT+CIFSR");
         String ip_msg = ESP8266_ReadData();
         ip_msg.trim();
         if(ip_msg.endsWith("OK")){
             ip_msg.remove(ip_msg.indexOf("OK"));
             ip_msg.trim();
-            Serial.print("IP: ");
+            DEBUG.print("IP: ");
             ip_msg.remove(0, ip_msg.indexOf("\"") + 1);
-            Serial.println(ip_msg.substring(0, ip_msg.indexOf("\"")));
+            DEBUG.println(ip_msg.substring(0, ip_msg.indexOf("\"")));
             ip_msg.remove(0, ip_msg.indexOf("\"") + 1);
-            Serial.print("MAC: ");
+            DEBUG.print("MAC: ");
             ip_msg.remove(0, ip_msg.indexOf("\"") + 1);
-            Serial.println(ip_msg.substring(0, ip_msg.indexOf("\"")));
+            DEBUG.println(ip_msg.substring(0, ip_msg.indexOf("\"")));
         }
-        Serial.println("ESP8266 Initialized!");
-    #endif
+        DEBUG.println("ESP8266 Initialized!");
+    #endif*/
 }
 
 String CreateHTTPHeader(String method, String path, String content_type, int content_length){
@@ -71,9 +73,25 @@ String CreatePOSTRequest(String path, String content_type, String body) {
     return header + body + "\r\n";
 }
 
-void ESP8266_Send_Json(String json_str) {
+bool ESP8266_Start_TCP(String ip, int port){
+    ESP8266.println("AT+CIPSTART=\"TCP\",\"" + ip + "\"," + String(port));
+    String start_msg = ESP8266_ReadData();
+    start_msg.trim();
+    return start_msg.endsWith("OK");
+}
+
+String ESP8266_Send_Json(String json_str) {
     String req = CreatePOSTRequest(POST_PATH, "application/json", json_str);
-    Serial.println(req);
+    if(ESP8266_Start_TCP(SERVER_IP, SERVER_PORT)){
+        ESP8266.println("AT+CIPSEND=" + String(req.length()));
+        ESP8266_ReadData();
+        ESP8266.print(req);
+    }
+    else{
+        #ifdef USE_DEBUG_MODE
+            DEBUG.println("Can't Reach Server " + String(SERVER_IP) + ":" + String(SERVER_PORT) + "!!!");
+        #endif
+    }
 }
 
 String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
@@ -86,15 +104,40 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
     uid.add(uid4);
     String uid_json;
     root.printTo(uid_json);
+    //Send Json
     ESP8266_Send_Json(uid_json);
-    /*delay(200);
-    String cer_msg = ESP8266_ReadData();
-    cer_msg.trim();
-    //unpackge cer_msg
-    if(true){  //if Certificated
-        return String("");
+    //Receive name
+    String name;
+    String rec_msg = ESP8266.readString();
+    rec_msg.trim();
+    if(rec_msg.endsWith("CLOSED")){
+        int status_index = rec_msg.indexOf("200 OK");
+        if(status_index != -1){
+            String rec_json = rec_msg.substring(rec_msg.indexOf('{'), rec_msg.lastIndexOf('}') + 1);
+            JsonObject& rec_json_obj = jsonBuffer.parseObject(rec_json);
+            if (rec_json_obj.success()) {
+                name = rec_json_obj["name"];
+            }
+            #ifdef USE_DEBUG_MODE
+            else{
+                DEBUG.println("Can't parse json!!!");
+                DEBUG.println(rec_json);
+            }
+            #endif
+        }
+        else{
+            //deal with 404 or 500
+            #ifdef USE_DEBUG_MODE
+                DEBUG.println("404 or 500 ERROR!!!");
+                DEBUG.println(rec_msg);
+            #endif
+        }
     }
+    #ifdef USE_DEBUG_MODE
     else{
-        return String("");
-    }*/
+        DEBUG.println("Received Data is incorrect!!!");
+        DEBUG.println(rec_msg);
+    }
+    #endif
+    return name;
 }

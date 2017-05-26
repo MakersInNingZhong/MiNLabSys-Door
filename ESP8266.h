@@ -1,19 +1,20 @@
-#ifndef ESP8266
-#define ESP8266
+#ifndef MODULE_ESP8266
+#define MODULE_ESP8266
 
-#define USE_SOFTWARE_SERIAL
+#define ESP8266 Serial
 
-#define ESP8266_TX 2
-#define ESP8266_RX 3
+#define USE_DEBUG_MODE
 
-#define ESP8266_BAUD 9600
+#define DEBUG_TX 2
+#define DEBUG_RX 3
 
-#ifdef USE_SOFTWARE_SERIAL
+#define ESP8266_BAUD 115200
+#define DEBUG_BAUD 9600
+
+#ifdef USE_DEBUG_MODE
     #include <SoftwareSerial.h>
-    extern SoftwareSerial esp8266;
-    #define ESP8266 esp8266
-#else
-    #define ESP8266 Serial
+    extern SoftwareSerial debugserial;
+    #define DEBUG debugserial
 #endif
 
 #include <ArduinoJson.h>
