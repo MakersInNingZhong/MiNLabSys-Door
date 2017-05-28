@@ -22,7 +22,7 @@
 #define SERVER_IP "192.168.1.68"
 #define SERVER_PORT 3000
 
-#define POST_PATH "/"
+#define POST_PATH "/door"
 
 void ESP8266_Init();
 String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4);
