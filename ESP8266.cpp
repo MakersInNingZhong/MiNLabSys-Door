@@ -107,7 +107,7 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
     //Send Json
     ESP8266_Send_Json(uid_json);
     //Receive name
-    String name;
+    String user_name;
     String rec_msg = ESP8266.readString();
     rec_msg.trim();
     if(rec_msg.endsWith("CLOSED")){
@@ -116,7 +116,7 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
             String rec_json = rec_msg.substring(rec_msg.indexOf('{'), rec_msg.lastIndexOf('}') + 1);
             JsonObject& rec_json_obj = jsonBuffer.parseObject(rec_json);
             if (rec_json_obj.success()) {
-                name = rec_json_obj["name"];
+                user_name = rec_json_obj["name"].as<String>();
             }
             #ifdef USE_DEBUG_MODE
             else{
@@ -139,5 +139,5 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
         DEBUG.println(rec_msg);
     }
     #endif
-    return name;
+    return user_name;
 }
