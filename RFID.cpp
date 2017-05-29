@@ -11,7 +11,6 @@ void RFID_Init() {
         DEBUG.println("###### Initializing MFRC522 ######");
         DEBUG.println("SDA is attached to: " + String(MFRC522_SDA_PIN));
         DEBUG.println("RST is attached to: " + String(MFRC522_RST_PIN));
-        RFID.PCD_DumpVersionToSerial();
         DEBUG.println("MFRC522 Initialized!");
     #endif
 }

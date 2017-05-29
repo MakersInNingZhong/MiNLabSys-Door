@@ -9,13 +9,19 @@ void setup() {
 void loop() {
 	byte *uid = RFID_ReadUID();
 	if(uid != nullptr){
-		String user_name = CertificateUID(uid[0], uid[1], uid[2], uid[3]);
+		String user_name;
+		CertificateUID(user_name, uid[0], uid[1], uid[2], uid[3]);
 		if(user_name != String("")){
 			#ifdef USE_DEBUG_MODE
 				DEBUG.println(user_name + " has opened the door!");
 			#endif
 			// Open the door & display name
 		}
+		#ifdef USE_DEBUG_MODE
+		else{
+			DEBUG.println("ACCESS DENIED");
+		}
+		#endif
 	}
 }
 

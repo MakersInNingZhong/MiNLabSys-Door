@@ -2,20 +2,15 @@
 
 #include "ESP8266.h"
 
-#if (defined USE_DEBUG_MODE) && (defined DEBUG_TX) && (defined DEBUG_RX)
-SoftwareSerial debugserial(DEBUG_RX, DEBUG_TX);
-#endif
-
-DynamicJsonBuffer jsonBuffer;
-
-String ESP8266_ReadData() {
+void ESP8266_ReadData(String& temp, int delay_time = 4) {
+    #ifdef USE_DEBUG_MODE
+        DEBUG.println("Reading data...");
+    #endif
     while(!ESP8266.available());
-    String temp;
     while(ESP8266.available()){
         temp += ESP8266.readString();
-        delay(2);
+        delay(delay_time);
     }
-    return temp;
 }
 
 void ESP8266_Init() {
@@ -25,24 +20,25 @@ void ESP8266_Init() {
         DEBUG.println("SET BAUD: " + String(ESP8266_BAUD));
     #endif
     ESP8266.begin(ESP8266_BAUD);
-    delay(20);
-    /*#ifdef USE_DEBUG_MODE
+    #ifdef USE_DEBUG_MODE
         DEBUG.println("RESET ESP8266");
     #endif
     ESP8266.println("AT+RST");
-    String rst_msg = ESP8266_ReadData();
+    String rst_msg;
+    ESP8266_ReadData(rst_msg);
     rst_msg.trim();
     while(!rst_msg.endsWith("GOT IP")){
-        delay(500);
-        rst_msg = ESP8266_ReadData();
+        rst_msg = "";
+        delay(200);
+        ESP8266_ReadData(rst_msg);
         rst_msg.trim();
     }
-    ESP8266.println("AT+CIPMUX=0");
-    ESP8266_ReadData();
+    delay(200);
     #ifdef USE_DEBUG_MODE
-        DEBUG.println("ESP8266 HAS GOT IP");
         ESP8266.println("AT+CIFSR");
-        String ip_msg = ESP8266_ReadData();
+        String ip_msg;
+        ESP8266_ReadData(ip_msg);
+        DEBUG.println(ip_msg);
         ip_msg.trim();
         if(ip_msg.endsWith("OK")){
             ip_msg.remove(ip_msg.indexOf("OK"));
@@ -56,46 +52,47 @@ void ESP8266_Init() {
             DEBUG.println(ip_msg.substring(0, ip_msg.indexOf("\"")));
         }
         DEBUG.println("ESP8266 Initialized!");
-    #endif*/
+    #endif
 }
 
-String CreateHTTPHeader(String method, String path, String content_type, int content_length){
-    String header = method + " " + path + " HTTP/1.1\r\n";
+void CreateHTTPHeader(String& header, String method, String path, String content_type, int content_length){
+    header = method + " " + path + " HTTP/1.1\r\n";
     header += "Connection: close\r\n";
     header += "Content-Type: " + content_type + ";charset=utf-8\r\n";
     header += "Content-Length: " + String(content_length) + "\r\n\r\n";
-    return header;
-}
-
-String CreatePOSTRequest(String path, String content_type, String body) {
-    String header = CreateHTTPHeader("POST", path, content_type, body.length());
-    body.trim();
-    return header + body + "\r\n";
 }
 
 bool ESP8266_Start_TCP(String ip, int port){
     ESP8266.println("AT+CIPSTART=\"TCP\",\"" + ip + "\"," + String(port));
-    String start_msg = ESP8266_ReadData();
+    String start_msg;
+    ESP8266_ReadData(start_msg);
     start_msg.trim();
     return start_msg.endsWith("OK");
 }
 
-String ESP8266_Send_Json(String json_str) {
-    String req = CreatePOSTRequest(POST_PATH, "application/json", json_str);
+bool ESP8266_Send_Json(String json_str) {
     if(ESP8266_Start_TCP(SERVER_IP, SERVER_PORT)){
-        ESP8266.println("AT+CIPSEND=" + String(req.length()));
-        ESP8266_ReadData();
-        ESP8266.print(req);
+        String header;
+        CreateHTTPHeader(header, "POST", POST_PATH, "application/json", json_str.length());
+        json_str += "\r\n";
+        ESP8266.println("AT+CIPSEND=" + String(header.length() + json_str.length()));
+        String temp;
+        ESP8266_ReadData(temp);
+        ESP8266.print(header);
+        ESP8266.print(json_str);
+        return true;
     }
     else{
         #ifdef USE_DEBUG_MODE
             DEBUG.println("Can't Reach Server " + String(SERVER_IP) + ":" + String(SERVER_PORT) + "!!!");
         #endif
+        return false;
     }
 }
 
-String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
+void CertificateUID(String& user_name, byte uid1, byte uid2, byte uid3, byte uid4) {
     //Create Json: {"uid":[uid1, uid2, uid3, uid4]}
+    DynamicJsonBuffer jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
     JsonArray& uid = root.createNestedArray("uid");
     uid.add(uid1);
@@ -105,10 +102,16 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
     String uid_json;
     root.printTo(uid_json);
     //Send Json
-    ESP8266_Send_Json(uid_json);
+    if(!ESP8266_Send_Json(uid_json)){
+        user_name = String("");
+        return;
+    }
     //Receive name
-    String user_name;
-    String rec_msg = ESP8266.readString();
+    String rec_msg;
+    ESP8266_ReadData(rec_msg, 2);
+    #ifdef USE_DEBUG_MODE
+        DEBUG.println(rec_msg);
+    #endif
     rec_msg.trim();
     if(rec_msg.endsWith("CLOSED")){
         int status_index = rec_msg.indexOf("200 OK");
@@ -117,6 +120,7 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
             JsonObject& rec_json_obj = jsonBuffer.parseObject(rec_json);
             if (rec_json_obj.success()) {
                 user_name = rec_json_obj["name"].as<String>();
+                return;
             }
             #ifdef USE_DEBUG_MODE
             else{
@@ -139,5 +143,4 @@ String CertificateUID(byte uid1, byte uid2, byte uid3, byte uid4) {
         DEBUG.println(rec_msg);
     }
     #endif
-    return user_name;
 }

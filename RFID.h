@@ -1,6 +1,8 @@
 #ifndef MODULE_RFID
 #define MODULE_RFID
 
+#include "debug.h"
+
 #include <SPI.h>
 #include <MFRC522.h>
 
