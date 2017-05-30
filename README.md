@@ -6,7 +6,7 @@ This project uses Arduino Uno as main controller, ESP8266 to access WiFi, MFRC52
 
 It reads uid of a IC card and package it into json then send the json to the main server to certificate the identity of the card. Door will be opened if the server passes the certification. 
 
-### This porject use two following libraries:
+### This porject uses two following libraries:
 
 - [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
 - [MFRC522](https://github.com/miguelbalboa/rfid)
@@ -37,7 +37,7 @@ The uid of a IC card is easy to be made up, and this project is not using HTTPS 
 
 #### SoftwareSerial for debuging
 
-*needs a USB to TTl device or an extra Arduino*
+*needs a USB to TTL device or an extra Arduino*
 
 TX and RX pin can be changed in debug.h
 
