@@ -4,14 +4,15 @@
 #define RELAY_PIN 6
 
 void Open_the_Door(){
-	digitalWrite(RELAY_PIN, HIGH);
-	delay(4000);
 	digitalWrite(RELAY_PIN, LOW);
+	delay(4000);
+	digitalWrite(RELAY_PIN, HIGH);
 }
 
 void setup() {
-	pinMode(RELA_PIN, OUTPUT);
-    ESP8266_Init();
+	pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, HIGH);
+  ESP8266_Init();
 	RFID_Init();
 }
 
