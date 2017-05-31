@@ -35,6 +35,9 @@ The uid of a IC card is easy to be made up, and this project is not using HTTPS 
 - MISO -> 12
 - SCK -> 13
 
+#### Relay
+- In -> 6(default)(can be changed in MiNLabSys-Door.ino)
+
 #### SoftwareSerial for debuging
 
 *needs a USB to TTL device or an extra Arduino*
