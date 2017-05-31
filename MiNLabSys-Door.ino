@@ -1,7 +1,16 @@
 #include "ESP8266.h"
 #include "RFID.h"
 
+#define RELAY_PIN 6
+
+void Open_the_Door(){
+	digitalWrite(RELAY_PIN, HIGH);
+	delay(4000);
+	digitalWrite(RELAY_PIN, LOW);
+}
+
 void setup() {
+	pinMode(RELA_PIN, OUTPUT);
     ESP8266_Init();
 	RFID_Init();
 }
@@ -15,7 +24,7 @@ void loop() {
 			#ifdef USE_DEBUG_MODE
 				DEBUG.println(user_name + " has opened the door!");
 			#endif
-			// Open the door & display name
+			Open_the_Door();
 		}
 		#ifdef USE_DEBUG_MODE
 		else{
