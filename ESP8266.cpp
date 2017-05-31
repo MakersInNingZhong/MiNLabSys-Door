@@ -67,7 +67,7 @@ bool ESP8266_Start_TCP(String ip, int port){
     String start_msg;
     ESP8266_ReadData(start_msg);
     start_msg.trim();
-    return start_msg.endsWith("OK");
+    return start_msg.endsWith("OK") || start_msg.endsWith("CONNECTED");
 }
 
 bool ESP8266_Send_Json(String json_str) {
